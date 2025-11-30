@@ -48,7 +48,8 @@ class Tracker_Manager:
     def sessions(self, inbound_sessions):
         for i, session in enumerate(inbound_sessions):
             session.previous = inbound_sessions[i - 1] if i > 0 else None
-            # session.strike = self.calculate_strike(session)
+            session.strike = self.calculate_strike(session)
+            self._console.print_session(session)
             self._sessions.append(session)
 
     def add_new_session(self, date):
@@ -58,12 +59,20 @@ class Tracker_Manager:
     # def get_delta(self):
     #     return (self._today - self.sessions[-1].date).days
     
-    def calculate_strike(self, current_session):
-        strike = 0
-        while current_session.number != 0:
-            strike += 1
-            current_session = current_session.previous
-        return strike
+    # def calculate_strike(self, current_session):
+    #     strike = 0
+    #     while current_session.number != 0:
+    #         strike += 1
+    #         current_session = current_session.previous
+    #     return strike
+    
+    def calculate_strike(self, session):
+        session.strike = 0
+        if session.number != 0:
+            session.strike = (session.previous.strike if session.previous else 0) + 1
+        return session.strike
+
+
     
     def is_min_amount_complited(self, curren_session, min_amount_value = 6):
         min_amount = 0
@@ -75,11 +84,11 @@ class Tracker_Manager:
         match (self._today - session.date).days:
             case 0:
                 print("Есть запись сегодня")
-                self._console.print_session(session, self.calculate_strike(session))
+                self._console.print_session(session)
             case 1:
                 print("Есть запись вчера, следует внести запись за сегодня")
                 self.add_new_session(self._today)
-                self._console.print_session(self.sessions[-1], self.calculate_strike(self.sessions[-1]))
+                self._console.print_session(self.sessions[-1])
             case _:
                 print("Есть пропущенные записи")
                 self.add_new_session(session.date + timedelta(days=1))
@@ -124,10 +133,11 @@ class SCVDataManager:
 
             
 class Session:
-    def __init__(self, session_date, sets_number,  previous_session = None, strike = None, min_amount_complited = False):
+    def __init__(self, session_date, sets_number,  previous_session = None, strike = 0, min_amount_complited = False):
         self.date = session_date
         self.number = int(sets_number)
         self.previous = previous_session
+        self.strike = strike
         self.min_amount_complited = min_amount_complited
 
     def __str__(self):
@@ -195,8 +205,8 @@ class Console:
             case _:
                 print(f"Отсутствует запись за {Console.humanize_date(sessions[-1].date + timedelta(days=1))}")
 
-    def print_session(self, session, strike):
-        print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.number}. Непрерывная серия: {strike}")
+    def print_session(self, session):
+        print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.number}. Непрерывная серия: {session.strike}")
 
     def print_sessions(self, sessions):
         for session in sessions:
