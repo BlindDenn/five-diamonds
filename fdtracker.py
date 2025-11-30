@@ -36,9 +36,6 @@ class Tracker_Manager:
 
         # ===========================
 
-    # def get_session(self, index):
-    #     session = Session.get_session_from_dict(self._model.get_record(index))
-    #     return session.date, session.number, session.strike
     
     @property
     def sessions(self):
