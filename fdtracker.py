@@ -14,7 +14,6 @@ class Tracker_Manager:
 
         self._today = date.today()
         self._sessions = []
-        self.current_strike = 0
         
         self._console.print_header(self._today)
 
