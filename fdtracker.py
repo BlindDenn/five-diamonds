@@ -49,7 +49,9 @@ class Tracker_Manager:
             self._sessions.append(session)
 
     def add_new_session(self, date):
-        self.sessions.append(Session(date, self._console.get_sets_number(date), self.sessions[-1]))
+        self.sessions.append(Session(date, self._console.get_sets_number(date)))
+        self.sessions[-1].previous = self.sessions[-2]
+        self.sessions[-1].strike = self.calculate_strike(self.sessions[-1])
         self._model.write_record(self.sessions[-1].get_session_to_dict())
 
     # def get_delta(self):
@@ -68,14 +70,10 @@ class Tracker_Manager:
             session.strike = (session.previous.strike if session.previous else 0) + 1
         return session.strike
 
-
-    
-    def is_min_amount_complited(self, curren_session, min_amount_value = 6):
-        min_amount = 0
-        while curren_session.number != 0 and min_amount < min_amount_value:
-            ...
-
     def process_last_session(self):
+        if not self.sessions[-1]:
+            sys.exit("Нет данных для обработки")
+
         session = self.sessions[-1]
         match (self._today - session.date).days:
             case 0:
