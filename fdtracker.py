@@ -23,7 +23,7 @@ class Tracker_Manager:
         self._today = date.today()
         self._sessions = []
         
-        self._console.print_header(self._today)
+        self._console.show_welcome_message(self._today)
 
         self.sessions = self._unchained_sessions
 
@@ -53,7 +53,7 @@ class Tracker_Manager:
         for i, session in enumerate(inbound_sessions):
             session.previous = inbound_sessions[i - 1] if i > 0 else None
             session.streak = self.calculate_streak(session)
-            self._console.print_session(session)
+            # self._console.print_session(session)
             self._sessions.append(session)
 
     def analyze_current_state(self) -> SessionState:
@@ -199,7 +199,7 @@ class Console:
                 weekday = "вторник" 
         return date.strftime(f"%d.%m.%Y, {weekday}")
     
-    def print_header(self, today_date):
+    def show_welcome_message(self, today_date):
         os.system('cls')
         self.print_double_hline()
         print("Это персональный трекер \"Пять Тибетских Жемчужин\"")
@@ -242,6 +242,9 @@ def main():
     csv_data_manager = SCVDataManager()
     console = Console()
     tracker_manager = Tracker_Manager(csv_data_manager, console)
+
+
+    # ZGZDJEUUE 
 
 
 if __name__ == "__main__":
