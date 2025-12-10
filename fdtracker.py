@@ -244,8 +244,5 @@ def main():
     tracker_manager = Tracker_Manager(csv_data_manager, console)
 
 
-    # ZGZDJEUUE 
-
-
 if __name__ == "__main__":
     main()
