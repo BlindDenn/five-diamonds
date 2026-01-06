@@ -28,8 +28,10 @@ class Tracker_Manager:
 
         self.sessions = self._unchained_sessions
 
-        self.process_last_session()
-        
+        self.get_current_state()
+
+        self._console.display(self.current_state, self.sessions[-1])
+    
         # === Работающий код! ===
 
         # while self.sessions[-1].date != self._today:
@@ -93,27 +95,27 @@ class Tracker_Manager:
             session.streak = (session.previous.streak if session.previous else 0) + 1
         return session.streak
 
-    def process_last_session(self):
+    def get_current_state(self):
         if not self.sessions[-1]:
             sys.exit("Нет данных для обработки")
 
-        session = self.sessions[-1]
-        self._session_state = self.analyze_current_state()
-        match (self._today - session.date).days:
-            case 0:
-                print(self._session_state.value)
-                print("Есть запись сегодня")
-                self._console.print_session(session)
-            case 1:
-                print(self._session_state.value)
-                print("Есть запись вчера, следует внести запись за сегодня")
-                self.add_new_session(self._today)
-                self._console.print_session(self.sessions[-1])
-            case _:
-                print(self._session_state.value)
-                print("Есть пропущенные записи")
-                self.add_new_session(session.date + timedelta(days=1))
-                self.process_last_session()
+        # session = self.sessions[-1]
+        self._current_state = self.analyze_current_state()
+        # match (self._today - session.date).days:
+        #     case 0:
+        #         print(self._session_state.value)
+        #         print("Есть запись сегодня")
+        #         self._console.print_session(session)
+        #     case 1:
+        #         print(self._session_state.value)
+        #         print("Есть запись вчера, следует внести запись за сегодня")
+        #         self.add_new_session(self._today)
+        #         self._console.print_session(self.sessions[-1])
+        #     case _:
+        #         print(self._session_state.value)
+        #         print("Есть пропущенные записи")
+        #         self.add_new_session(session.date + timedelta(days=1))
+        #         self.process_last_session()
 
         
 
@@ -199,16 +201,28 @@ class Console:
     def __init__(self):
         self.line_len = 60
 
-    TEMPLATES = {
+    _TEMPLATES = {
         SessionState.NO_SESSIONS: {
             "title": "В базе данных нет записей о выполненных упражнениях",
             "data": None
         },
         SessionState.TODAY_EXIST: {
-            "title": "В базе данных есть запись об упражнениях, выполненных сегодня",
+            "title": f"В базе данных есть запись об упражнениях, выполненных сегодня",
             "data": f"Сессия есть{60}"
+        },
+        SessionState.YESTERDAY_EXIST: {
+            "title": lambda data: f"В базе данных есть запись об упражнениях, сделанных вчера, {data.date}. Было сделано подходов: {data.number}",
+            "data": None
+        },
+        SessionState.MISSING_DAYS: {
+            "title": "В базе данных нет записей о нескольких последних днях",
+            "data": None
         } 
     }
+
+    def display (self, state, session):
+        template = self._TEMPLATES[state]["title"](session)
+        print(template)
 
     @classmethod
     def humanize_date(cls, date):
