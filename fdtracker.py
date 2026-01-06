@@ -16,6 +16,7 @@ class Tracker_Manager:
     def __init__(self, model, console):
         self._model = model
         self._console = console
+        self._current_state = SessionState.NO_SESSIONS
 
         self.records = self._model.get_records()
         self._unchained_sessions = [Session.get_session_from_dict(record) for record in self.records]
@@ -48,6 +49,10 @@ class Tracker_Manager:
     def sessions(self):
         return self._sessions
     
+    @property
+    def current_state(self):
+        return self._current_state
+    
     @sessions.setter
     def sessions(self, inbound_sessions):
         for i, session in enumerate(inbound_sessions):
@@ -59,10 +64,10 @@ class Tracker_Manager:
     def analyze_current_state(self) -> SessionState:
         if not self.sessions:
             return SessionState.NO_SESSIONS
-        elif self._today == self.sessions[1].date:
+        elif self._today == self.sessions[-1].date:
             return SessionState.TODAY_EXIST
-        elif self._today - self.sessions[1].date == 1:
-            return SessionState.TODAY_EXIST
+        elif (self._today - self.sessions[-1].date).days == 1:
+            return SessionState.YESTERDAY_EXIST
         else:
             return SessionState.MISSING_DAYS
 
@@ -93,15 +98,19 @@ class Tracker_Manager:
             sys.exit("Нет данных для обработки")
 
         session = self.sessions[-1]
+        self._session_state = self.analyze_current_state()
         match (self._today - session.date).days:
             case 0:
+                print(self._session_state.value)
                 print("Есть запись сегодня")
                 self._console.print_session(session)
             case 1:
+                print(self._session_state.value)
                 print("Есть запись вчера, следует внести запись за сегодня")
                 self.add_new_session(self._today)
                 self._console.print_session(self.sessions[-1])
             case _:
+                print(self._session_state.value)
                 print("Есть пропущенные записи")
                 self.add_new_session(session.date + timedelta(days=1))
                 self.process_last_session()
