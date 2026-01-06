@@ -28,7 +28,7 @@ class Tracker_Manager:
         self.sessions = self._unchained_sessions
 
         self.process_last_session()
-
+        
         # === Работающий код! ===
 
         # while self.sessions[-1].date != self._today:
