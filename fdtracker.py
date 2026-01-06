@@ -28,7 +28,7 @@ class Tracker_Manager:
         self.sessions = self._unchained_sessions
 
         self.process_last_session()
-
+        
         # === Работающий код! ===
 
         # while self.sessions[-1].date != self._today:
@@ -189,6 +189,17 @@ class Session:
 class Console:
     def __init__(self):
         self.line_len = 60
+
+    TEMPLATES = {
+        SessionState.NO_SESSIONS: {
+            "title": "В базе данных нет записей о выполненных упражнениях",
+            "data": None
+        },
+        SessionState.TODAY_EXIST: {
+            "title": "В базе данных есть запись об упражнениях, выполненных сегодня",
+            "data": f"Сессия есть{60}"
+        } 
+    }
 
     @classmethod
     def humanize_date(cls, date):
