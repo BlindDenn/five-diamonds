@@ -30,7 +30,11 @@ class Tracker_Manager:
 
         self.get_current_state()
 
-        self._console.display(self.current_state, self.sessions[-1])
+        while not self.current_state == SessionState.TODAY_EXIST:
+            self.new_sets_number = self._console.display(self.current_state, self.sessions[-1])
+            print(f"Менеджером получено количество подходов из консоли: {self.new_sets_number}")
+        else:
+            print("Все готово!")
     
         # === Работающий код! ===
 
@@ -98,9 +102,8 @@ class Tracker_Manager:
     def get_current_state(self):
         if not self.sessions[-1]:
             sys.exit("Нет данных для обработки")
-
-        # session = self.sessions[-1]
         self._current_state = self.analyze_current_state()
+
         # match (self._today - session.date).days:
         #     case 0:
         #         print(self._session_state.value)
@@ -199,30 +202,33 @@ class Session:
 
 class Console:
     def __init__(self):
-        self.line_len = 60
+        self.line_len = 100
 
     _TEMPLATES = {
         SessionState.NO_SESSIONS: {
-            "title": "В базе данных нет записей о выполненных упражнениях",
-            "data": None
+            "title": "В базе данных нет записей о выполненных упражнениях"
         },
         SessionState.TODAY_EXIST: {
-            "title": f"В базе данных есть запись об упражнениях, выполненных сегодня",
-            "data": f"Сессия есть{60}"
-        },
+            "title": f"В базе данных есть запись об упражнениях, выполненных сегодня"
+        }, 
         SessionState.YESTERDAY_EXIST: {
-            "title": lambda data: f"В базе данных есть запись об упражнениях, сделанных вчера, {data.date}. Было сделано подходов: {data.number}",
-            "data": None
+            "title": lambda data: (f"В базе данных есть запись об упражнениях, "
+                f"сделанных вчера, {Console.humanize_date(data.date)}. \n"
+                f"Было сделано подходов: {data.number}")
         },
         SessionState.MISSING_DAYS: {
-            "title": "В базе данных нет записей о нескольких последних днях",
-            "data": None
+            "title": lambda data: (f"В базе отсутвуют записи о нескольких днях. "
+                f"Последняя запись за {Console.humanize_date(data.date)}. \n"
+                f"Было сделано подходов: {data.number}")
         } 
     }
 
     def display (self, state, session):
         template = self._TEMPLATES[state]["title"](session)
         print(template)
+        if state == SessionState.MISSING_DAYS or state == SessionState.YESTERDAY_EXIST:
+            new_sets_number = self.get_sets_number(session.date + timedelta(days=1))
+            return(new_sets_number)
 
     @classmethod
     def humanize_date(cls, date):
