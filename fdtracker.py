@@ -32,7 +32,9 @@ class Tracker_Manager:
 
         while not self.current_state == SessionState.TODAY_EXIST:
             self.new_sets_number = self._console.display(self.current_state, self.sessions[-1])
-            print(f"Менеджером получено количество подходов из консоли: {self.new_sets_number}")
+            next_date = self.sessions[-1].date + timedelta(days=1)
+            self.add_new_session(next_date, self.new_sets_number)
+            self.get_current_state()
         else:
             print("Все готово!")
     
@@ -77,8 +79,8 @@ class Tracker_Manager:
         else:
             return SessionState.MISSING_DAYS
 
-    def add_new_session(self, date):
-        self.sessions.append(Session(date, self._console.get_sets_number(date)))
+    def add_new_session(self, date, sets_number):
+        self.sessions.append(Session(date, sets_number))
         self.sessions[-1].previous = self.sessions[-2]
         self.sessions[-1].streak = self.calculate_streak(self.sessions[-1])
         self._model.write_record(self.sessions[-1].get_session_to_dict())
@@ -214,12 +216,14 @@ class Console:
         SessionState.YESTERDAY_EXIST: {
             "title": lambda data: (f"В базе данных есть запись об упражнениях, "
                 f"сделанных вчера, {Console.humanize_date(data.date)}. \n"
-                f"Было сделано подходов: {data.number}")
+                f"Было сделано подходов: {data.number}. " 
+                f"Непрерывная серия: {data.streak}.")
         },
         SessionState.MISSING_DAYS: {
             "title": lambda data: (f"В базе отсутвуют записи о нескольких днях. "
                 f"Последняя запись за {Console.humanize_date(data.date)}. \n"
-                f"Было сделано подходов: {data.number}")
+                f"Было сделано подходов: {data.number}. "
+                f"Непрерывная серия: {data.streak}.")
         } 
     }
 
