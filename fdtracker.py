@@ -31,9 +31,9 @@ class Tracker_Manager:
         self.get_current_state()
 
         while not self.current_state == SessionState.TODAY_EXIST:
-            self.new_sets_number = self._console.display(self.current_state, self.sessions[-1])
+            self.new_sets_reps = self._console.display(self.current_state, self.sessions[-1])
             next_date = self.sessions[-1].date + timedelta(days=1)
-            self.add_new_session(next_date, self.new_sets_number)
+            self.add_new_session(next_date, self.new_sets_reps)
             self.get_current_state()
         else:
             print("Все готово!")
@@ -231,8 +231,8 @@ class Console:
         template = self._TEMPLATES[state]["title"](session)
         print(template)
         if state == SessionState.MISSING_DAYS or state == SessionState.YESTERDAY_EXIST:
-            new_sets_number = self.get_sets_number(session.date + timedelta(days=1))
-            return(new_sets_number)
+            new_sets_reps = self.get_sets_number(session.date + timedelta(days=1))
+            return(new_sets_reps)
 
     @classmethod
     def humanize_date(cls, date):
@@ -281,6 +281,10 @@ class Console:
     def print_double_hline(self):
         print("=" * self.line_len)
             
+
+class RequiredReps:
+    ...
+
 
 def main():
     csv_data_manager = SCVDataManager()
