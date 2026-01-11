@@ -31,12 +31,16 @@ class Tracker_Manager:
         self.get_current_state()
 
         while not self.current_state == SessionState.TODAY_EXIST:
-            self.new_sets_reps = self._console.display(self.current_state, self.sessions[-1])
+            penalty_state = RepsRules.is_next_day_miss_allowed(self.sessions)
+            required_reps = RepsRules.next_day_required_reps(self.sessions)
+            self.new_sets_reps = self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
             next_date = self.sessions[-1].date + timedelta(days=1)
             self.add_new_session(next_date, self.new_sets_reps)
             self.get_current_state()
         else:
-            print("Все готово!")
+            penalty_state = RepsRules.is_next_day_miss_allowed(self.sessions)
+            required_reps = RepsRules.next_day_required_reps(self.sessions)
+            self.new_sets_reps = self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
     
         # === Работающий код! ===
 
@@ -208,28 +212,43 @@ class Console:
 
     _TEMPLATES = {
         SessionState.NO_SESSIONS: {
-            "title": "В базе данных нет записей о выполненных упражнениях"
+            "main_message": "В базе данных нет записей о выполненных упражнениях",
+            "next_session_message": None
+
         },
         SessionState.TODAY_EXIST: {
-            "title": f"В базе данных есть запись об упражнениях, выполненных сегодня"
+            "main_message": lambda data: (f"В базу данных внесена запись за сегодня.\n"
+                f"Подходов: {data.rep}. " 
+                f"Непрерывная серия: {data.streak}."),
+            "next_session_message": lambda penalty_state: f"Допустим ли пропуск завтра: {penalty_state}",
+            "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов завтра: {required_reps}"
         }, 
         SessionState.YESTERDAY_EXIST: {
-            "title": lambda data: (f"В базе данных есть запись об упражнениях, "
-                f"сделанных вчера, {Console.humanize_date(data.date)}. \n"
-                f"Было сделано подходов: {data.rep}. " 
-                f"Непрерывная серия: {data.streak}.")
+            "main_message": lambda data: (f"В базе данных есть запись за вчера, "
+                f"{Console.humanize_date(data.date)}. \n"
+                f"Подходов: {data.rep}. " 
+                f"Непрерывная серия: {data.streak}."),
+            "next_session_message": lambda penalty_state: f"Допустим ли пропуск сегодня: {penalty_state}",
+            "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
+
         },
         SessionState.MISSING_DAYS: {
-            "title": lambda data: (f"В базе отсутвуют записи о нескольких днях. "
+            "main_message": lambda data: (f"В базе отсутвуют записи за несколько дней. "
                 f"Последняя запись за {Console.humanize_date(data.date)}. \n"
-                f"Было сделано подходов: {data.rep}. "
-                f"Непрерывная серия: {data.streak}.")
+                f"Подходов: {data.rep}. "
+                f"Непрерывная серия: {data.streak}."),
+            "next_session_message": lambda penalty_state: f"Допустим ли пропуск на следующий день: {penalty_state},",
+            "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
+
+
         } 
     }
 
-    def display (self, state, session):
-        template = self._TEMPLATES[state]["title"](session)
+    def display (self, state, session, penalty_state, required_reps):
+        template = self._TEMPLATES[state]["main_message"](session) + "\n" + self._TEMPLATES[state]["next_session_message"](penalty_state) + "\n" + self._TEMPLATES[state]["next_session_required_reps"](required_reps)
+        self.print_hline()
         print(template)
+        self.print_hline()
         if state == SessionState.MISSING_DAYS or state == SessionState.YESTERDAY_EXIST:
             new_sets_reps = self.get_sets_rep(session.date + timedelta(days=1))
             return(new_sets_reps)
@@ -271,6 +290,7 @@ class Console:
     def get_sets_rep(self, date):
         try:
             rep = int(input(f"Введите количество подходов для сессии {Console.humanize_date(date)}: "))
+            self.print_hline
         except ValueError:    
             sys.exit("Количество должно быть числом")
         return rep
@@ -282,12 +302,41 @@ class Console:
         print("=" * self.line_len)
             
 
-class RequiredReps:
+class RepsRules:
+    _SAFE_STREAK_DAYS = 6
+    _MAX_REPS = 21
+    _PENALTY_DICREMENT_COUNT = 2 
+    _LEVELUP_REPS_COUNT = 2
+    
     @classmethod
-    def is_next_day_miss_allowed(sessions):
-        print(sessions[-1].streak)
-    ...
-
+    def is_next_day_miss_allowed(cls, sessions):
+        result = False
+        if sessions[-1].streak >= cls._SAFE_STREAK_DAYS:
+            result = True
+        return result
+    
+    @classmethod
+    def next_day_required_reps(cls, sessions):
+        penalty_reps_count = 0
+        current_session = sessions[-1]
+        next_session_reps = current_session.rep
+        if next_session_reps == cls._MAX_REPS:
+            return next_session_reps
+        elif next_session_reps == 0:
+            zero_reps_count = 0 
+            while next_session_reps == 0:
+                print("while works")
+                zero_reps_count += 1 
+                penalty_reps_count += cls._PENALTY_DICREMENT_COUNT
+                current_session = current_session.previous
+                next_session_reps = current_session.rep
+            else:
+                if current_session.previous.streak >= 6:
+                    penalty_reps_count -= cls._PENALTY_DICREMENT_COUNT
+                return next_session_reps - penalty_reps_count
+        else:
+            return "пока не вычеслено"        
+    
 
 def main():
     csv_data_manager = SCVDataManager()
