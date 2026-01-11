@@ -79,8 +79,8 @@ class Tracker_Manager:
         else:
             return SessionState.MISSING_DAYS
 
-    def add_new_session(self, date, sets_number):
-        self.sessions.append(Session(date, sets_number))
+    def add_new_session(self, date, sets_rep):
+        self.sessions.append(Session(date, sets_rep))
         self.sessions[-1].previous = self.sessions[-2]
         self.sessions[-1].streak = self.calculate_streak(self.sessions[-1])
         self._model.write_record(self.sessions[-1].get_session_to_dict())
@@ -90,14 +90,14 @@ class Tracker_Manager:
     
     # def calculate_streak(self, current_session):
     #     streak = 0
-    #     while current_session.number != 0:
+    #     while current_session.rep != 0:
     #         streak += 1
     #         current_session = current_session.previous
     #     return streak
     
     def calculate_streak(self, session):
         session.streak = 0
-        if session.number != 0:
+        if session.rep != 0:
             session.streak = (session.previous.streak if session.previous else 0) + 1
         return session.streak
 
@@ -148,11 +148,11 @@ class SCVDataManager:
         with open("exersizes.csv", 'r', newline="", encoding="utf-8") as f:
             self.reader = csv.DictReader(f)
             for row in self.reader:
-                self.records.append({"date": row["date"], "number": row["number"]})
+                self.records.append({"date": row["date"], "rep": row["rep"]})
 
     def write_record(self, record: dict):
         with open("exersizes.csv", "a", newline="", encoding="UTF-8") as f:
-            fieldnames = ["date", "number"]
+            fieldnames = ["date", "rep"]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writerow(record)
     
@@ -161,26 +161,26 @@ class SCVDataManager:
 
             
 class Session:
-    def __init__(self, session_date, sets_number,  previous_session = None, streak = 0, min_amount_complited = False):
+    def __init__(self, session_date, sets_rep,  previous_session = None, streak = 0, min_amount_complited = False):
         self.date = session_date
-        self.number = int(sets_number)
+        self.rep = int(sets_rep)
         self.previous = previous_session
         self.streak = streak
         self.min_amount_complited = min_amount_complited
 
     def __str__(self):
-        return f"{self.date}, {self.number}"
+        return f"{self.date}, {self.rep}"
     
     @classmethod
     def get_session_from_dict(cls, dict):
         if dict:
-            return Session(dict["date"], dict["number"])
+            return Session(dict["date"], dict["rep"])
         else:
             return None
         
     
     def get_session_to_dict(self):
-        return {"date": self.date, "number": self.number}
+        return {"date": self.date, "rep": self.rep}
         
     @property
     def date(self):
@@ -194,12 +194,12 @@ class Session:
             self._date = input
     
     @property
-    def number(self):
-        return self._number
+    def rep(self):
+        return self._rep
     
-    @number.setter
-    def number(self, number):
-        self._number = number
+    @rep.setter
+    def rep(self, rep):
+        self._rep = rep
 
 
 class Console:
@@ -216,13 +216,13 @@ class Console:
         SessionState.YESTERDAY_EXIST: {
             "title": lambda data: (f"В базе данных есть запись об упражнениях, "
                 f"сделанных вчера, {Console.humanize_date(data.date)}. \n"
-                f"Было сделано подходов: {data.number}. " 
+                f"Было сделано подходов: {data.rep}. " 
                 f"Непрерывная серия: {data.streak}.")
         },
         SessionState.MISSING_DAYS: {
             "title": lambda data: (f"В базе отсутвуют записи о нескольких днях. "
                 f"Последняя запись за {Console.humanize_date(data.date)}. \n"
-                f"Было сделано подходов: {data.number}. "
+                f"Было сделано подходов: {data.rep}. "
                 f"Непрерывная серия: {data.streak}.")
         } 
     }
@@ -231,7 +231,7 @@ class Console:
         template = self._TEMPLATES[state]["title"](session)
         print(template)
         if state == SessionState.MISSING_DAYS or state == SessionState.YESTERDAY_EXIST:
-            new_sets_reps = self.get_sets_number(session.date + timedelta(days=1))
+            new_sets_reps = self.get_sets_rep(session.date + timedelta(days=1))
             return(new_sets_reps)
 
     @classmethod
@@ -262,18 +262,18 @@ class Console:
                 print(f"Отсутствует запись за {Console.humanize_date(sessions[-1].date + timedelta(days=1))}")
 
     def print_session(self, session):
-        print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.number}. Непрерывная серия: {session.streak}")
+        print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.rep}. Непрерывная серия: {session.streak}")
 
     def print_sessions(self, sessions):
         for session in sessions:
-            print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.number}")
+            print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.rep}")
 
-    def get_sets_number(self, date):
+    def get_sets_rep(self, date):
         try:
-            number = int(input(f"Введите количество подходов для сессии {Console.humanize_date(date)}: "))
+            rep = int(input(f"Введите количество подходов для сессии {Console.humanize_date(date)}: "))
         except ValueError:    
             sys.exit("Количество должно быть числом")
-        return number
+        return rep
     
     def print_hline(self):
         print("-" * self.line_len)
@@ -283,6 +283,9 @@ class Console:
             
 
 class RequiredReps:
+    @classmethod
+    def is_next_day_miss_allowed(sessions):
+        print(sessions[-1].streak)
     ...
 
 
