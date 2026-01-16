@@ -26,6 +26,7 @@ class Tracker_Manager:
         
         self._console.show_welcome_message(self._today)
 
+        # Calculate full sessions object thru @sessions.setter
         self.sessions = self._unchained_sessions
 
         self.get_current_state()
@@ -33,30 +34,15 @@ class Tracker_Manager:
         while not self.current_state == SessionState.TODAY_EXIST:
             penalty_state = RepsRules.is_next_day_miss_allowed(self.sessions)
             required_reps = RepsRules.next_day_required_reps(self.sessions)
-            self.new_sets_reps = self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
+            new_sets_reps = self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
             next_date = self.sessions[-1].date + timedelta(days=1)
-            self.add_new_session(next_date, self.new_sets_reps)
+            self.add_new_session(next_date, new_sets_reps)
             self.get_current_state()
         else:
             penalty_state = RepsRules.is_next_day_miss_allowed(self.sessions)
             required_reps = RepsRules.next_day_required_reps(self.sessions)
-            self.new_sets_reps = self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
-    
-        # === Работающий код! ===
-
-        # while self.sessions[-1].date != self._today:
-        #     self.check_last_session()
-        #     self._console.print_last_session(self.sessions, self.get_delta())
-        #     self.add_new_session(self.sessions[-1].date + timedelta(days=1))
-        #     model.write_record(self.sessions[-1].get_session_to_dict())
-
-        # self._console.print_last_session(self.sessions[-1])
-        # self.curren_streak = self.calculate_streak(self.sessions[-1])
-        # self._console.print_session(self.sessions[-1], self.curren_streak)
-
-        # ===========================
-
-    
+            self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
+       
     @property
     def sessions(self):
         return self._sessions
@@ -94,14 +80,14 @@ class Tracker_Manager:
     
     # def calculate_streak(self, current_session):
     #     streak = 0
-    #     while current_session.rep != 0:
+    #     while current_session.reps != 0:
     #         streak += 1
     #         current_session = current_session.previous
     #     return streak
     
     def calculate_streak(self, session):
         session.streak = 0
-        if session.rep != 0:
+        if session.reps != 0:
             session.streak = (session.previous.streak if session.previous else 0) + 1
         return session.streak
 
@@ -152,11 +138,11 @@ class SCVDataManager:
         with open("exersizes.csv", 'r', newline="", encoding="utf-8") as f:
             self.reader = csv.DictReader(f)
             for row in self.reader:
-                self.records.append({"date": row["date"], "rep": row["rep"]})
+                self.records.append({"date": row["date"], "reps": row["reps"]})
 
     def write_record(self, record: dict):
         with open("exersizes.csv", "a", newline="", encoding="UTF-8") as f:
-            fieldnames = ["date", "rep"]
+            fieldnames = ["date", "reps"]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writerow(record)
     
@@ -167,24 +153,24 @@ class SCVDataManager:
 class Session:
     def __init__(self, session_date, sets_rep,  previous_session = None, streak = 0, min_amount_complited = False):
         self.date = session_date
-        self.rep = int(sets_rep)
+        self.reps = int(sets_rep)
         self.previous = previous_session
         self.streak = streak
         self.min_amount_complited = min_amount_complited
 
     def __str__(self):
-        return f"{self.date}, {self.rep}"
+        return f"{self.date}, {self.reps}"
     
     @classmethod
     def get_session_from_dict(cls, dict):
         if dict:
-            return Session(dict["date"], dict["rep"])
+            return Session(dict["date"], dict["reps"])
         else:
             return None
         
     
     def get_session_to_dict(self):
-        return {"date": self.date, "rep": self.rep}
+        return {"date": self.date, "reps": self.reps}
         
     @property
     def date(self):
@@ -198,12 +184,12 @@ class Session:
             self._date = input
     
     @property
-    def rep(self):
+    def reps(self):
         return self._rep
     
-    @rep.setter
-    def rep(self, rep):
-        self._rep = rep
+    @reps.setter
+    def reps(self, reps):
+        self._rep = reps
 
 
 class Console:
@@ -218,7 +204,7 @@ class Console:
         },
         SessionState.TODAY_EXIST: {
             "main_message": lambda data: (f"В базу данных внесена запись за сегодня.\n"
-                f"Подходов: {data.rep}. " 
+                f"Подходов: {data.reps}. " 
                 f"Непрерывная серия: {data.streak}."),
             "next_session_message": lambda penalty_state: f"Допустим ли пропуск завтра: {penalty_state}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов завтра: {required_reps}"
@@ -226,7 +212,7 @@ class Console:
         SessionState.YESTERDAY_EXIST: {
             "main_message": lambda data: (f"В базе данных есть запись за вчера, "
                 f"{Console.humanize_date(data.date)}. \n"
-                f"Подходов: {data.rep}. " 
+                f"Подходов: {data.reps}. " 
                 f"Непрерывная серия: {data.streak}."),
             "next_session_message": lambda penalty_state: f"Допустим ли пропуск сегодня: {penalty_state}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
@@ -235,7 +221,7 @@ class Console:
         SessionState.MISSING_DAYS: {
             "main_message": lambda data: (f"В базе отсутвуют записи за несколько дней. "
                 f"Последняя запись за {Console.humanize_date(data.date)}. \n"
-                f"Подходов: {data.rep}. "
+                f"Подходов: {data.reps}. "
                 f"Непрерывная серия: {data.streak}."),
             "next_session_message": lambda penalty_state: f"Допустим ли пропуск на следующий день: {penalty_state},",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
@@ -281,19 +267,19 @@ class Console:
                 print(f"Отсутствует запись за {Console.humanize_date(sessions[-1].date + timedelta(days=1))}")
 
     def print_session(self, session):
-        print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.rep}. Непрерывная серия: {session.streak}")
+        print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}. Непрерывная серия: {session.streak}")
 
     def print_sessions(self, sessions):
         for session in sessions:
-            print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.rep}")
+            print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}")
 
     def get_sets_rep(self, date):
         try:
-            rep = int(input(f"Введите количество подходов для сессии {Console.humanize_date(date)}: "))
+            reps = int(input(f"Введите количество подходов для сессии {Console.humanize_date(date)}: "))
             self.print_hline
         except ValueError:    
             sys.exit("Количество должно быть числом")
-        return rep
+        return reps
     
     def print_hline(self):
         print("-" * self.line_len)
@@ -304,7 +290,9 @@ class Console:
 
 class RepsRules:
     _SAFE_STREAK_DAYS = 6
+    _LEVELUP_STREAK = 3
     _MAX_REPS = 21
+    _MIN_REPS = 3
     _PENALTY_DICREMENT_COUNT = 2 
     _LEVELUP_REPS_COUNT = 2
     
@@ -319,23 +307,64 @@ class RepsRules:
     def next_day_required_reps(cls, sessions):
         penalty_reps_count = 0
         current_session = sessions[-1]
-        next_session_reps = current_session.rep
-        if next_session_reps == cls._MAX_REPS:
-            return next_session_reps
-        elif next_session_reps == 0:
+        next_session_reps = cls._set_next_session_reps(sessions)
+        if current_session.reps == 0:
             zero_reps_count = 0 
-            while next_session_reps == 0:
-                print("while works")
+            while current_session.reps == 0:
                 zero_reps_count += 1 
                 penalty_reps_count += cls._PENALTY_DICREMENT_COUNT
                 current_session = current_session.previous
-                next_session_reps = current_session.rep
             else:
-                if current_session.previous.streak >= 6:
+                if current_session.streak >= 6:
                     penalty_reps_count -= cls._PENALTY_DICREMENT_COUNT
-                return next_session_reps - penalty_reps_count
-        else:
-            return "пока не вычеслено"        
+                    next_session_reps -= penalty_reps_count
+                else:
+                    next_session_reps -= penalty_reps_count
+        if next_session_reps < cls._MAX_REPS:
+            # print('Да, шаг на новую сессию меньше максимума')
+            if cls._is_levelup_streak_completed(sessions[-1]):
+                # print('Да, мини-стрейк выполнен')
+                return next_session_reps + RepsRules._LEVELUP_REPS_COUNT
+        return next_session_reps
+    
+    @classmethod
+    def _is_levelup_streak_completed(cls, current_session):
+        levelup_streak_counter = 1
+        zero_counter = 0
+        target_reps = current_session.reps
+        while levelup_streak_counter < cls._LEVELUP_STREAK:
+            # if not current_session.previous:
+            #     print("Подходов в проверке1: ", current_session.reps)
+            #     return False
+            next_session = current_session.previous
+            while next_session.reps == 0: 
+                next_session = next_session.previous
+                zero_counter += 1
+                if zero_counter > 1:
+                    # print("Подходов в проверке2: ", current_session.reps)
+                    return False
+            if not current_session.reps == target_reps:
+                # print("Подходов в проверке3: ", current_session.reps, " ", next_session.reps)
+                return False
+            else:
+                current_session = next_session
+                levelup_streak_counter += 1
+        # print("Подходов в проверке4: ", current_session.reps)
+        return True
+    
+    @classmethod
+    def _find_first_nonzero_session(cls, sessions):
+        current_session = sessions[-1]
+        while current_session.reps == 0:
+            current_session = current_session.previous
+        return current_session
+    
+    @classmethod
+    def _set_next_session_reps(cls, sessions):
+        next_session_reps = cls._find_first_nonzero_session(sessions).reps
+        # if next_session_reps < cls._MAX_REPS:
+        #     next_session_reps += cls._LEVELUP_REPS_COUNT
+        return next_session_reps
     
 
 def main():
