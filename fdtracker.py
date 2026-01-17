@@ -20,9 +20,9 @@ class Tracker_Manager:
 
         self.records = self._model.get_records()
         self._unchained_sessions = [Session.get_session_from_dict(record) for record in self.records]
+        self._sessions = []
 
         self._today = date.today()
-        self._sessions = []
         
         self._console.show_welcome_message(self._today)
 
@@ -56,7 +56,6 @@ class Tracker_Manager:
         for i, session in enumerate(inbound_sessions):
             session.previous = inbound_sessions[i - 1] if i > 0 else None
             session.streak = self.calculate_streak(session)
-            # self._console.print_session(session)
             self._sessions.append(session)
 
     def analyze_current_state(self) -> SessionState:
@@ -74,16 +73,6 @@ class Tracker_Manager:
         self.sessions[-1].previous = self.sessions[-2]
         self.sessions[-1].streak = self.calculate_streak(self.sessions[-1])
         self._model.write_record(self.sessions[-1].get_session_to_dict())
-
-    # def get_delta(self):
-    #     return (self._today - self.sessions[-1].date).days
-    
-    # def calculate_streak(self, current_session):
-    #     streak = 0
-    #     while current_session.reps != 0:
-    #         streak += 1
-    #         current_session = current_session.previous
-    #     return streak
     
     def calculate_streak(self, session):
         session.streak = 0
@@ -95,38 +84,6 @@ class Tracker_Manager:
         if not self.sessions[-1]:
             sys.exit("Нет данных для обработки")
         self._current_state = self.analyze_current_state()
-
-        # match (self._today - session.date).days:
-        #     case 0:
-        #         print(self._session_state.value)
-        #         print("Есть запись сегодня")
-        #         self._console.print_session(session)
-        #     case 1:
-        #         print(self._session_state.value)
-        #         print("Есть запись вчера, следует внести запись за сегодня")
-        #         self.add_new_session(self._today)
-        #         self._console.print_session(self.sessions[-1])
-        #     case _:
-        #         print(self._session_state.value)
-        #         print("Есть пропущенные записи")
-        #         self.add_new_session(session.date + timedelta(days=1))
-        #         self.process_last_session()
-
-        
-
-
-    # def get_todays_session(self):
-    #     if self._sessions[-1].date == self._today:
-    #         return self._sessions[-1]
-    #     else:
-    #         return False
-        
-    # def check_sessions_continuity(self):
-    #     delta = self.sessions[-1].date - self.sessions[-2].date 
-    #     print(type(delta), delta)
-        
-    # def print_recent_session(self):
-    #     self._console.print_session(self._sessions[-1])
        
 
 class SCVDataManager:
@@ -151,12 +108,11 @@ class SCVDataManager:
 
             
 class Session:
-    def __init__(self, session_date, sets_rep,  previous_session = None, streak = 0, min_amount_complited = False):
+    def __init__(self, session_date, sets_rep,  previous_session = None, streak = 0):
         self.date = session_date
         self.reps = int(sets_rep)
         self.previous = previous_session
         self.streak = streak
-        self.min_amount_complited = min_amount_complited
 
     def __str__(self):
         return f"{self.date}, {self.reps}"
@@ -167,8 +123,7 @@ class Session:
             return Session(dict["date"], dict["reps"])
         else:
             return None
-        
-    
+            
     def get_session_to_dict(self):
         return {"date": self.date, "reps": self.reps}
         
@@ -317,54 +272,42 @@ class RepsRules:
             else:
                 if current_session.streak >= 6:
                     penalty_reps_count -= cls._PENALTY_DICREMENT_COUNT
-                    next_session_reps -= penalty_reps_count
-                else:
-                    next_session_reps -= penalty_reps_count
-        if next_session_reps < cls._MAX_REPS:
-            # print('Да, шаг на новую сессию меньше максимума')
-            if cls._is_levelup_streak_completed(sessions[-1]):
-                # print('Да, мини-стрейк выполнен')
-                return next_session_reps + RepsRules._LEVELUP_REPS_COUNT
+        next_session_reps -= penalty_reps_count
         return next_session_reps
-    
+        
+    @classmethod
+    def _set_next_session_reps(cls, sessions):
+        first_nonzero_session = cls._find_first_nonzero_session(sessions)
+        next_session_reps = first_nonzero_session.reps
+        if RepsRules._is_levelup_streak_completed(first_nonzero_session) and next_session_reps < RepsRules._MAX_REPS:
+            next_session_reps += RepsRules._LEVELUP_REPS_COUNT
+        return next_session_reps
+        
     @classmethod
     def _is_levelup_streak_completed(cls, current_session):
         levelup_streak_counter = 1
         zero_counter = 0
         target_reps = current_session.reps
         while levelup_streak_counter < cls._LEVELUP_STREAK:
-            # if not current_session.previous:
-            #     print("Подходов в проверке1: ", current_session.reps)
-            #     return False
             next_session = current_session.previous
             while next_session.reps == 0: 
                 next_session = next_session.previous
                 zero_counter += 1
                 if zero_counter > 1:
-                    # print("Подходов в проверке2: ", current_session.reps)
                     return False
-            if not current_session.reps == target_reps:
-                # print("Подходов в проверке3: ", current_session.reps, " ", next_session.reps)
+            if not next_session.reps == target_reps:
                 return False
             else:
                 current_session = next_session
                 levelup_streak_counter += 1
-        # print("Подходов в проверке4: ", current_session.reps)
         return True
-    
+        
     @classmethod
     def _find_first_nonzero_session(cls, sessions):
         current_session = sessions[-1]
         while current_session.reps == 0:
             current_session = current_session.previous
         return current_session
-    
-    @classmethod
-    def _set_next_session_reps(cls, sessions):
-        next_session_reps = cls._find_first_nonzero_session(sessions).reps
-        # if next_session_reps < cls._MAX_REPS:
-        #     next_session_reps += cls._LEVELUP_REPS_COUNT
-        return next_session_reps
     
 
 def main():
