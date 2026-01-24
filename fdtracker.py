@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 
 class SessionState(Enum):
+    APP_INIT = "app_init"
     NO_SESSIONS = "no_sessions"
     TODAY_EXIST = "today_exist"
     YESTERDAY_EXIST = "yesterday_exist"
@@ -34,7 +35,8 @@ class Tracker_Manager:
         while not self.current_state == SessionState.TODAY_EXIST:
             penalty_state = RepsRules.is_next_day_miss_allowed(self.sessions)
             required_reps = RepsRules.next_day_required_reps(self.sessions)
-            new_sets_reps = self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
+            self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
+            new_sets_reps = self._console.get_reps(self.sessions[-1].date)
             next_date = self.sessions[-1].date + timedelta(days=1)
             self.add_new_session(next_date, new_sets_reps)
             self.get_current_state()
@@ -190,9 +192,13 @@ class Console:
         self.print_hline()
         print(template)
         self.print_hline()
-        if state == SessionState.MISSING_DAYS or state == SessionState.YESTERDAY_EXIST:
-            new_sets_reps = self.get_sets_rep(session.date + timedelta(days=1))
-            return(new_sets_reps)
+        # if state == SessionState.MISSING_DAYS or state == SessionState.YESTERDAY_EXIST:
+        #     new_sets_reps = self.get_sets_rep(session.date + timedelta(days=1))
+        #     return(new_sets_reps)
+        
+    def get_reps(self, date):
+        new_sets_reps = self.get_sets_rep(date + timedelta(days=1))
+        return new_sets_reps
 
     @classmethod
     def humanize_date(cls, date):
@@ -209,7 +215,7 @@ class Console:
         print("Это персональный трекер \"Пять Тибетских Жемчужин\"")
         self.print_double_hline()
         print(f"Сегодня {Console.humanize_date(today_date)}\n")
-        self.print_hline()
+        # self.print_hline()
 
     def print_last_session(self, sessions, delta = 0):
         match delta:
@@ -234,6 +240,8 @@ class Console:
             self.print_hline
         except ValueError:    
             sys.exit("Количество должно быть числом")
+        except KeyboardInterrupt:
+            sys.exit("\nПрограмма прервана пользователем")
         return reps
     
     def print_hline(self):
