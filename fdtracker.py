@@ -163,7 +163,7 @@ class Console:
             "main_message": lambda data: (f"В базу данных внесена запись за сегодня.\n"
                 f"Подходов: {data.reps}. " 
                 f"Непрерывная серия: {data.streak}."),
-            "next_session_message": lambda penalty_state: f"Допустим ли пропуск завтра: {penalty_state}",
+            "next_session_message": lambda penalty_state: f"Допустим ли пропуск завтра: {Console.format_penalty(penalty_state)}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов завтра: {required_reps}"
         }, 
         SessionState.YESTERDAY_EXIST: {
@@ -171,7 +171,7 @@ class Console:
                 f"{Console.humanize_date(data.date)}. \n"
                 f"Подходов: {data.reps}. " 
                 f"Непрерывная серия: {data.streak}."),
-            "next_session_message": lambda penalty_state: f"Допустим ли пропуск сегодня: {penalty_state}",
+            "next_session_message": lambda penalty_state: f"Допустим ли пропуск сегодня: {Console.format_penalty(penalty_state)}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
 
         },
@@ -180,7 +180,7 @@ class Console:
                 f"Последняя запись за {Console.humanize_date(data.date)}. \n"
                 f"Подходов: {data.reps}. "
                 f"Непрерывная серия: {data.streak}."),
-            "next_session_message": lambda penalty_state: f"Допустим ли пропуск на следующий день: {penalty_state},",
+            "next_session_message": lambda penalty_state: f"Допустим ли пропуск на следующий день: {Console.format_penalty(penalty_state)}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
 
 
@@ -209,10 +209,17 @@ class Console:
                 weekday = "вторник" 
         return date.strftime(f"%d.%m.%Y, {weekday}")
     
+    @classmethod
+    def format_penalty(cls, current_penalty_state):
+        formated_str = f"{Colors.BOLD}{Colors.RED}НЕТ{Colors.RESET}"
+        if current_penalty_state:
+            formated_str = f"{Colors.GREEN}да{Colors.RESET}"
+        return formated_str
+
     def show_welcome_message(self, today_date):
         os.system('cls')
         self.print_double_hline()
-        print("Это персональный трекер \"Пять Тибетских Жемчужин\"")
+        print(f"{Colors.BOLD}{Colors.GREEN}Это персональный трекер \"Пять Тибетских Жемчужин\"{Colors.RESET}")
         self.print_double_hline()
         print(f"Сегодня {Console.humanize_date(today_date)}\n")
         # self.print_hline()
@@ -248,21 +255,65 @@ class Console:
         print("-" * self.line_len)
     
     def print_double_hline(self):
-        print("=" * self.line_len)
-            
+        print(Colors.GREEN, "=" * self.line_len, Colors.RESET, sep="")
+
+
+class Colors:
+    """ANSI escape sequences for terminal colors"""
+    # Стили текста
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    ITALIC = '\033[3m'
+    UNDERLINE = '\033[4m'
+    BLINK = '\033[5m'
+    REVERSE = '\033[7m'
+    HIDDEN = '\033[8m'
+    
+    # Основные цвета
+    BLACK = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    
+    # Яркие цвета
+    BRIGHT_BLACK = '\033[90m'
+    BRIGHT_RED = '\033[91m'
+    BRIGHT_GREEN = '\033[92m'
+    BRIGHT_YELLOW = '\033[93m'
+    BRIGHT_BLUE = '\033[94m'
+    BRIGHT_MAGENTA = '\033[95m'
+    BRIGHT_CYAN = '\033[96m'
+    BRIGHT_WHITE = '\033[97m'
+    
+    # Фоны
+    BG_BLACK = '\033[40m'
+    BG_RED = '\033[41m'
+    BG_GREEN = '\033[42m'
+    BG_YELLOW = '\033[43m'
+    BG_BLUE = '\033[44m'
+    BG_MAGENTA = '\033[45m'
+    BG_CYAN = '\033[46m'
+    BG_WHITE = '\033[47m'
+
+
 
 class RepsRules:
-    _SAFE_STREAK_DAYS = 6
+    _SAFE_STREAK = 6
     _LEVELUP_STREAK = 3
     _MAX_REPS = 21
     _MIN_REPS = 3
-    _PENALTY_DICREMENT_COUNT = 2 
-    _LEVELUP_REPS_COUNT = 2
+    _PENALTY_DICREMENT_REPS = 2 
+    _LEVELUP_REPS = 2
     
     @classmethod
     def is_next_day_miss_allowed(cls, sessions):
         result = False
-        if sessions[-1].streak >= cls._SAFE_STREAK_DAYS:
+        if sessions[-1].streak >= cls._SAFE_STREAK:
             result = True
         return result
     
@@ -275,11 +326,11 @@ class RepsRules:
             zero_reps_count = 0 
             while current_session.reps == 0:
                 zero_reps_count += 1 
-                penalty_reps_count += cls._PENALTY_DICREMENT_COUNT
+                penalty_reps_count += cls._PENALTY_DICREMENT_REPS
                 current_session = current_session.previous
             else:
                 if current_session.streak >= 6:
-                    penalty_reps_count -= cls._PENALTY_DICREMENT_COUNT
+                    penalty_reps_count -= cls._PENALTY_DICREMENT_REPS
         next_session_reps -= penalty_reps_count
         return next_session_reps
         
@@ -288,7 +339,7 @@ class RepsRules:
         first_nonzero_session = cls._find_first_nonzero_session(sessions)
         next_session_reps = first_nonzero_session.reps
         if RepsRules._is_levelup_streak_completed(first_nonzero_session) and next_session_reps < RepsRules._MAX_REPS:
-            next_session_reps += RepsRules._LEVELUP_REPS_COUNT
+            next_session_reps += RepsRules._LEVELUP_REPS
         return next_session_reps
         
     @classmethod
