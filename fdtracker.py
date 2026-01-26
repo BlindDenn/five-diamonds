@@ -204,9 +204,9 @@ class Console:
     def humanize_date(cls, date):
         weekdays = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
         weekday = weekdays[date.weekday()]
-        match date.weekday():
-            case 1:
-                weekday = "вторник" 
+        # match date.weekday():
+        #     case 1:
+        #         weekday = "вторник" 
         return date.strftime(f"%d.%m.%Y, {weekday}")
     
     @classmethod
@@ -224,27 +224,27 @@ class Console:
         print(f"Сегодня {Console.humanize_date(today_date)}\n")
         # self.print_hline()
 
-    def print_last_session(self, sessions, delta = 0):
-        match delta:
-            case 0:
-                self.print_hline()
-                print("На сегодня запись существует")
-            case 1:
-                print("Cегодня еще нет записи о выполненном упражении")
-            case _:
-                print(f"Отсутствует запись за {Console.humanize_date(sessions[-1].date + timedelta(days=1))}")
+    # def print_last_session(self, sessions, delta = 0):
+    #     match delta:
+    #         case 0:
+    #             self.print_hline()
+    #             print("На сегодня запись существует")
+    #         case 1:
+    #             print("Cегодня еще нет записи о выполненном упражении")
+    #         case _:
+    #             print(f"Отсутствует запись за {Console.humanize_date(sessions[-1].date + timedelta(days=1))}")
 
-    def print_session(self, session):
-        print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}. Непрерывная серия: {session.streak}")
+    # def print_session(self, session):
+    #     print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}. Непрерывная серия: {session.streak}")
 
-    def print_sessions(self, sessions):
-        for session in sessions:
-            print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}")
+    # def print_sessions(self, sessions):
+    #     for session in sessions:
+    #         print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}")
 
     def get_sets_rep(self, date):
         try:
             reps = int(input(f"Введите количество подходов для сессии {Console.humanize_date(date)}: "))
-            self.print_hline
+            # self.print_hline
         except ValueError:    
             sys.exit("Количество должно быть числом")
         except KeyboardInterrupt:
