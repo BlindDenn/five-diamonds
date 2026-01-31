@@ -83,7 +83,7 @@ class Tracker_Manager:
         return session.streak
 
     def get_current_state(self):
-        if not self.sessions[-1]:
+        if not self.sessions or not self.sessions[-1]:
             sys.exit("Нет данных для обработки")
         self._current_state = self.analyze_current_state()
        
@@ -161,7 +161,7 @@ class Console:
         },
         SessionState.TODAY_EXIST: {
             "main_message": lambda data: (f"В базу данных внесена запись за сегодня.\n"
-                f"Подходов: {data.reps}. " 
+                f"Повторов: {data.reps}. " 
                 f"Непрерывная серия: {data.streak}."),
             "next_session_message": lambda penalty_state: f"Допустим ли пропуск завтра: {Console.format_penalty(penalty_state)}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов завтра: {required_reps}"
@@ -169,7 +169,7 @@ class Console:
         SessionState.YESTERDAY_EXIST: {
             "main_message": lambda data: (f"В базе данных есть запись за вчера, "
                 f"{Console.humanize_date(data.date)}. \n"
-                f"Подходов: {data.reps}. " 
+                f"Повторов: {data.reps}. " 
                 f"Непрерывная серия: {data.streak}."),
             "next_session_message": lambda penalty_state: f"Допустим ли пропуск сегодня: {Console.format_penalty(penalty_state)}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
@@ -178,12 +178,10 @@ class Console:
         SessionState.MISSING_DAYS: {
             "main_message": lambda data: (f"В базе отсутвуют записи за несколько дней. "
                 f"Последняя запись за {Console.humanize_date(data.date)}. \n"
-                f"Подходов: {data.reps}. "
+                f"Повторов: {data.reps}. "
                 f"Непрерывная серия: {data.streak}."),
             "next_session_message": lambda penalty_state: f"Допустим ли пропуск на следующий день: {Console.format_penalty(penalty_state)}",
             "next_session_required_reps": lambda required_reps: f"Рекомендуется повторов: {required_reps}"
-
-
         } 
     }
 
@@ -235,15 +233,15 @@ class Console:
     #             print(f"Отсутствует запись за {Console.humanize_date(sessions[-1].date + timedelta(days=1))}")
 
     # def print_session(self, session):
-    #     print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}. Непрерывная серия: {session.streak}")
+    #     print(f"Сессия: {Console.humanize_date(session.date)}, повторов: {session.reps}. Непрерывная серия: {session.streak}")
 
     # def print_sessions(self, sessions):
     #     for session in sessions:
-    #         print(f"Сессия: {Console.humanize_date(session.date)}, подходов: {session.reps}")
+    #         print(f"Сессия: {Console.humanize_date(session.date)}, повторов: {session.reps}")
 
     def get_sets_rep(self, date):
         try:
-            reps = int(input(f"Введите количество подходов для сессии {Console.humanize_date(date)}: "))
+            reps = int(input(f"Введите количество повторов для сессии {Console.humanize_date(date)}: "))
             # self.print_hline
         except ValueError:    
             sys.exit("Количество должно быть числом")
