@@ -60,15 +60,6 @@ class Tracker_Manager:
             session.streak = self.calculate_streak(session)
             self._sessions.append(session)
 
-    def analyze_current_state(self) -> SessionState:
-        if not self.sessions:
-            return SessionState.NO_SESSIONS
-        elif self._today == self.sessions[-1].date:
-            return SessionState.TODAY_EXIST
-        elif (self._today - self.sessions[-1].date).days == 1:
-            return SessionState.YESTERDAY_EXIST
-        else:
-            return SessionState.MISSING_DAYS
 
     def add_new_session(self, date, sets_rep):
         self.sessions.append(Session(date, sets_rep))
@@ -86,6 +77,16 @@ class Tracker_Manager:
         if not self.sessions or not self.sessions[-1]:
             sys.exit("Нет данных для обработки")
         self._current_state = self.analyze_current_state()
+    
+    def analyze_current_state(self) -> SessionState:
+        if not self.sessions:
+            return SessionState.NO_SESSIONS
+        elif self._today == self.sessions[-1].date:
+            return SessionState.TODAY_EXIST
+        elif (self._today - self.sessions[-1].date).days == 1:
+            return SessionState.YESTERDAY_EXIST
+        else:
+            return SessionState.MISSING_DAYS
        
 
 class SCVDataManager:
