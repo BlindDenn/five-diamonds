@@ -36,8 +36,11 @@ class Tracker_Manager:
             penalty_state = RepsRules.is_next_day_miss_allowed(self.sessions)
             required_reps = RepsRules.next_day_required_reps(self.sessions)
             self._console.display(self.current_state, self.sessions[-1], penalty_state, required_reps)
-            new_sets_reps = self._console.get_reps(self.sessions[-1].date)
+
             next_date = self.sessions[-1].date + timedelta(days=1)
+            is_today = (next_date == self._today)
+
+            new_sets_reps = self._console.get_reps(next_date, is_today)
             self.add_new_session(next_date, new_sets_reps)
             self.get_current_state()
         else:
@@ -192,12 +195,8 @@ class Console:
         print(template)
         self.print_hline()
         # if state == SessionState.MISSING_DAYS or state == SessionState.YESTERDAY_EXIST:
-        #     new_sets_reps = self.get_sets_rep(session.date + timedelta(days=1))
+        #     new_sets_reps = self.get_reps(session.date + timedelta(days=1))
         #     return(new_sets_reps)
-        
-    def get_reps(self, date):
-        new_sets_reps = self.get_sets_rep(date + timedelta(days=1))
-        return new_sets_reps
 
     @classmethod
     def humanize_date(cls, date):
@@ -240,9 +239,13 @@ class Console:
     #     for session in sessions:
     #         print(f"Сессия: {Console.humanize_date(session.date)}, повторов: {session.reps}")
 
-    def get_sets_rep(self, date):
+    def get_reps(self, session_date, is_today=False):
         try:
-            reps = int(input(f"Введите количество повторов для сессии {Console.humanize_date(date)}: "))
+            today_addon = ", СЕГОДНЯ" if is_today else ""
+
+            prompt_text = f"Введите количество повторов для сессии {Console.humanize_date(session_date)}{today_addon}: "
+
+            reps = int(input(prompt_text))
             # self.print_hline
         except ValueError:    
             sys.exit("Количество должно быть числом")
