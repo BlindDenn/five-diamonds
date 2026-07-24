@@ -346,21 +346,23 @@ class RepsRules:
         
     @classmethod
     def _is_levelup_streak_completed(cls, current_session):
-        levelup_streak_counter = 1
-        zero_counter = 0
+        # Быстрая проверка через streak — серия слишком короткая
+        if current_session.streak < cls._LEVELUP_STREAK:
+            return False
+        
+        # Проверяем одинаковость повторов в серии
         target_reps = current_session.reps
+        previous = current_session.previous
+        levelup_streak_counter = 1
+
         while levelup_streak_counter < cls._LEVELUP_STREAK:
-            next_session = current_session.previous
-            while next_session.reps == 0: 
-                next_session = next_session.previous
-                zero_counter += 1
-                if zero_counter > 1:
-                    return False
-            if not next_session.reps == target_reps:
+            if previous is None or previous.reps == 0:
                 return False
-            else:
-                current_session = next_session
-                levelup_streak_counter += 1
+            if previous.reps != target_reps:
+                return False
+            levelup_streak_counter += 1
+            previous = previous.previous
+
         return True
         
     @classmethod
