@@ -1,4 +1,5 @@
 import sys
+# TODO: remove absolete imports enum and os
 import os
 from enum import Enum
 import csv
@@ -85,7 +86,7 @@ class Tracker_Manager:
             return SessionState.MISSING_DAYS
        
 
-class SCVDataManager:
+class CSVDataManager:
     def __init__(self):
         self.records = []
         self.load_records()
@@ -216,7 +217,7 @@ class RepsRules:
     
 
 def main():
-    csv_data_manager = SCVDataManager()
+    csv_data_manager = CSVDataManager()
     console = Console()
     tracker_manager = Tracker_Manager(csv_data_manager, console)
 
